@@ -38,7 +38,6 @@
     </div>
     <div style="width:100%;text-align:center">
       <van-button type="warning" size="small" style="margin: 20px auto" @click="clearGame">重置记录</van-button>
-      <p style="color:#666;font-size:12px">copyright: <a href="https://www.52fansite.com" target="_blank">凡繁烦</a></p>
     </div>
     <van-popup v-model="showLevel" position="bottom" style="height:40%">
       <div class="levels">
@@ -89,74 +88,84 @@ export default {
   },
   watch: {
     id(val) {
+      this.updateStep(val);
+      this.updateLocalStorage('level', val);
+      this.updatePrevButton(val);
+      this.updateNextButton();
+    },
+    score(val) {
+      this.updateLocalStorage('score', val);
+    },
+    choiced(val) {
+      if (val.join('').length == 4) {
+        this.checkWordMatch(val);
+      }
+    }
+  },
+  mounted() {
+    this.loadLocalStorage();
+    this.jumpLevel(this.id);
+    this.$refs.bgm.play();
+  },
+  methods: {
+    updateStep(val) {
       if (val <= 10) {
         this.step = 2;
       } else if (val > 10 && val < 20) {
         this.step = 5;
       }
-      localStorage.setItem('level', val);
-      if (val >= 2) {
-        this.showPrev = true;
-      } else {
-        this.showPrev = false;
+    },
+    updateLocalStorage(key, value) {
+      localStorage.setItem(key, value);
+    },
+    updatePrevButton(val) {
+      this.showPrev = val >= 2;
+    },
+    updateNextButton() {
+      const playedArr = this.array.filter(it => it.id > this.id && it.played);
+      this.showNext = playedArr.length > 0 || this.obj.played;
+    },
+    loadLocalStorage() {
+      if (localStorage.getItem('level')) {
+        this.id = parseInt(localStorage.getItem('level'));
       }
-
-      let playedArr = this.array.filter(it => {
-        return it.id > this.id && it.played
-      })
-      if (playedArr.length > 0 || this.obj.played) {
-        this.showNext = true;
+      if (localStorage.getItem('score')) {
+        this.score = parseInt(localStorage.getItem('score'));
+      }
+      if (localStorage.getItem('array')) {
+        this.array = JSON.parse(localStorage.getItem('array'));
       } else {
-        this.showNext = false;
+        this.array = this.data;
+      }
+      if (localStorage.getItem('bgm')) {
+        this.isPlay = localStorage.getItem('bgm');
       }
     },
-    score(val) {
-      localStorage.setItem('score', val);
-    },
-    choiced(val) {
-      if (val.join('').length == 4) {
-        let wordArr = this.obj.word.split('');
-        let doms = document.getElementsByClassName('choiced-text');
-        let count = 0;
-        wordArr.map((a, i) => {
-          if (a != val[i]) {
-            doms[i].style.color = 'red';
-            count = count + 1;
-          } else {
-            doms[i].style.color = '#E3D479'
-          }
-        })
-        if (count > 0) {
-          this.$refs.error.play();
-          if (this.isPlay == '0') {
-            this.$refs.bgm.pause();
-            this.$refs.error.addEventListener('ended', () => {
-              this.$refs.bgm.play();
-            })
-          }
+    checkWordMatch(val) {
+      const wordArr = this.obj.word.split('');
+      const doms = document.getElementsByClassName('choiced-text');
+      let count = 0;
+      wordArr.forEach((a, i) => {
+        if (a != val[i]) {
+          doms[i].style.color = 'red';
+          count++;
+        } else {
+          doms[i].style.color = '#E3D479';
         }
+      });
+      if (count > 0) {
+        this.handleGameError();
       }
-    }
-  },
-  mounted() {
-    if (localStorage.getItem('level')) {
-      this.id = parseInt(localStorage.getItem('level'));
-    }
-    if (localStorage.getItem('score')) {
-      this.score = parseInt(localStorage.getItem('score'));
-    }
-    if (localStorage.getItem('array')) {
-      this.array = JSON.parse(localStorage.getItem('array'))
-    } else {
-      this.array = this.data;
-    }
-    if (localStorage.getItem('bgm')) {
-      this.isPlay = localStorage.getItem('bgm')
-    }
-    this.jumpLevel(this.id);
-    this.$refs.bgm.play();
-  },
-  methods: {
+    },
+    handleGameError() {
+      this.$refs.error.play();
+      if (this.isPlay == '0') {
+        this.$refs.bgm.pause();
+        this.$refs.error.addEventListener('ended', () => {
+          this.$refs.bgm.play();
+        });
+      }
+    },
     jumpLevel(id) {
       if (id != null) {
         this.id = id;
@@ -169,14 +178,20 @@ export default {
       }
       this.time = 0;
       this.prompt = 0;
-      this.obj = this.array[this.id - 1];
-      this.fetchData().then(res => {
-        console.log(res.json());
-      })
-      let p = 'https://aoppp.com/content/images/2023/03/12---03.png'
-      this.obj.picture = p;
+      let d = this.array[this.id - 1];
 
-      console.log(this.obj)
+      let model_prompt = d.prompt
+      this.obj = this.array[this.id - 1];
+      this.fetchData(model_prompt).then(res => res.json() ).then(data => {
+
+        if (data && data.data && data.data.length > 0) {
+          this.obj.picture = 'data:image/png;base64,' + data.data[0].b64_image;
+        } else {
+          // 处理数据不存在的情况
+        }
+      })
+
+
       this.choiced = ['', '', '', ''];
       this.getChoice();
       if (this.timer) {
@@ -189,7 +204,6 @@ export default {
     },
     getChoice() {
       let arr = this.obj.word.split('');
-      console.log(arr);
       while (arr.length < 24) {
         let index = Math.floor(Math.random() * (this.array.length));
         let wordArr = this.array[index].word.split('');
@@ -244,11 +258,13 @@ export default {
             }
             let s = this.star - this.prompt < 0 ? 0 : this.star - this.prompt
             this.array.map(a => {
+              a.picture = 'https://image.aoppp.com/loading.gif'
               if (a.id == this.id) {
                 a.played = true;
                 a.star = (a.star && s <= a.star) ? a.star : s;
               }
             })
+            console.log(this.array);
             localStorage.setItem('array', JSON.stringify(this.array));
             this.jumpLevel(this.id == this.array.length ? 1 : null);
             this.score = this.score + this.step * (this.star == 0 ? 1 : this.star);
@@ -333,6 +349,8 @@ export default {
     },
     handleClickLevel(item) {
       this.showLevel = false;
+      console.log(this.id);
+      console.log(item);
       if (item.id == this.id || !item.played) {
         if (!item.played && item.id != this.id) {
           Toast('通关后才可以挑战此关哟~');
@@ -341,12 +359,15 @@ export default {
       }
       this.jumpLevel(item.id)
     },
-    fetchData() {
-      const url = 'https://project-iprj65656207932e507bae89718f-5000.preview.node01.inscode.run/image/generations';
+    fetchData(prompt) {
+      console.log(prompt)
+      // const url = 'http://8.134.196.1:5000/image/generations';
+      const url = 'http://127.0.0.1:5000/image/generations';
       const data = {
-        'seed': 111,
-        'n': 2,
-        'prompt': '有一个人对着一头牛在弹琴',
+        'n': 1,
+        'prompt': prompt,
+        'size': '768x768',
+        'steps': 25
       };
 
       const headers = new Headers({
@@ -357,7 +378,7 @@ export default {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(data)
-      });
+      })
     },
   }
 }
@@ -372,11 +393,9 @@ export default {
 .picture {
   margin: 20px auto;
   width: calc(100% - 100px);
-  border: 1px;
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid #e0e0e0;
-  background-color: #fff;
+  border: 1px solid #ffffff;
 
   .img {
     width: 100%;
@@ -462,16 +481,14 @@ export default {
 }
 
 .levels {
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-gap: 10px;
   padding: 10px;
 
   .level-item {
-    width: calc(25% - 10px);
     height: 80px;
     border: 1px solid #e0e0e0;
-    margin-bottom: 10px;
     text-align: center;
     border-radius: 5px;
 

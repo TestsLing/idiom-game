@@ -1,9 +1,13 @@
 import requests
-from flask import Flask, jsonify
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import random
+
+app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins":"*"}}, send_wildcard=True)
 
 
-
-API_URL = "https://bcr3p4q6s4a8ncp1.aistudio-hub.baidu.com/image/generations"
+API_URL = "https://y9y7j1h052l2ef38.aistudio-hub.baidu.com/image/generations"
 headers = {
     # 请前往 https://aistudio.baidu.com/index/accessToken 查看 访问令牌
     "Authorization": "token da026271adac92edca187a86bd3e6abc3d13f203",
@@ -12,28 +16,33 @@ headers = {
 
 
 def query(payload):
+    print(payload)
     response = requests.post(API_URL, headers=headers, json=payload)
+    print(response)
     return response.json()
 
-
-output = query({
-    "prompt":"杰作，高品质，超精细，全细节，8k"
-})
-
-
-app = Flask(__name__)
 
 @app.route('/')
 def hello():
     return 'hello!'
 
-@app.route('/image/generations', methods=['GET'])
+@app.route('/image/generations', methods=['POST'])
 def generation():
+    data = request.json
+    print(data)
+    n = data.get('n')
+    prompt = data.get('prompt')
+    size = data.get('size')
+    steps = data.get('steps')
+    print(prompt)
+
     return query({
-        'seed': 111,
-        'n': 1,
-        'prompt': '有一个人对着一头牛在弹琴',
+        'seed': random.randint(100000, 999999999),
+        'n': n,
+        'prompt': prompt,
+        'size': size,
+        'steps':steps
       })
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0')
