@@ -362,7 +362,7 @@ export default {
     fetchData(prompt) {
       console.log(prompt)
       // const url = 'http://8.134.196.1:5000/image/generations';
-      const url = 'http://127.0.0.1:5000/image/generations';
+      const url = 'https://y9y7j1h052l2ef38.aistudio-hub.baidu.com/image/generations';
       const data = {
         'n': 1,
         'prompt': prompt,
