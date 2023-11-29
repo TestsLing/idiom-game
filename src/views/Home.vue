@@ -171,6 +171,7 @@ export default {
       this.prompt = 0;
       this.obj = this.array[this.id - 1];
       this.fetchData().then(res => {
+        
         console.log(res.json());
       })
       let p = 'https://aoppp.com/content/images/2023/03/12---03.png'
@@ -342,7 +343,7 @@ export default {
       this.jumpLevel(item.id)
     },
     fetchData() {
-      const url = 'https://10.233.109.92:5000/image/generations';
+      const url = 'https://project-iprj65656207932e507bae89718f-5000.preview.node01.inscode.run/image/generations';
       const data = {
         'seed': 111,
         'n': 2,
