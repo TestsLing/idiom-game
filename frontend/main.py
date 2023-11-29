@@ -7,7 +7,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins":"*"}}, send_wildcard=True)
 
 
-API_URL = "https://y9y7j1h052l2ef38.aistudio-hub.baidu.com/image/generations"
+API_URL = "https://project-iprj65656207932e507bae89718f-5000.preview.node01.inscode.run/image/generations"
 headers = {
     # 请前往 https://aistudio.baidu.com/index/accessToken 查看 访问令牌
     "Authorization": "token da026271adac92edca187a86bd3e6abc3d13f203",

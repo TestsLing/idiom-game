@@ -370,8 +370,11 @@ export default {
         'steps': 25
       };
 
+      var cookie = document.cookie;
+      
       const headers = new Headers({
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Cookie': cookie
       });
 
       return fetch(url, {
